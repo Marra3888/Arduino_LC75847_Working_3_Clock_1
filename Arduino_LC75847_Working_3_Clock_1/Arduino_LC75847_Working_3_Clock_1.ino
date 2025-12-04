@@ -587,6 +587,15 @@ private:
 // ===== Глобальный объект =====
 LC75847 lcd;
 
+// ===== НАСТРОЙКИ БУДИЛЬНИКА =====
+const uint8_t ALARM_HOUR   = 7;   // во сколько часов сработает будильник
+const uint8_t ALARM_MINUTE = 30;  // во сколько минут
+const uint8_t ALARM_SECOND = 0;   // по нулевой секунде
+
+bool alarmTriggeredToday = false;        // флаг: будильник уже сработал (для текущего дня)
+bool blinkState = false;           // состояние мигания ICON_SIGNAL
+unsigned long lastBlink = 0;
+bool colonState = false;
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void printTimeHHMMSS(uint8_t hours, uint8_t minutes, uint8_t seconds, bool colonOn) {
@@ -705,9 +714,6 @@ void turnOnAllIcons() {
 }
 
 // ######################################################################################################################################################################
-unsigned long lastBlink = 0;
-bool colonState = false;
-
 void setup() {
   Wire.begin();
   // Serial.begin(115200);
@@ -728,6 +734,24 @@ void setup() {
   // РУЧНАЯ установка: ГГГГ, ММ, ДД, ЧЧ, ММ, СС
   // например, 2025‑12‑31 23:59:00
   // setRtcManual(2025, 12, 4, 1, 39, 0);
+
+  // Настройка ежедневного будильника Alarm1 на ALARM_HOUR:ALARM_MINUTE:ALARM_SECOND
+  // Заполняем интерфейсные регистры RTC
+  RTC.h = ALARM_HOUR;
+  RTC.m = ALARM_MINUTE;
+  RTC.s = ALARM_SECOND;
+  // RTC.dow = 0;      // не используем день недели
+  // RTC.dd  = 0;      // не используем дату
+
+  // Записываем время Alarm1 с типом "часы, минуты, секунды совпали"
+  RTC.writeAlarm1(DS3231_ALM_HMS);
+
+  // Включаем прерывания от Alarm1 в контроллере DS3231
+  RTC.control(DS3231_A1_INT_ENABLE, DS3231_ON);
+  RTC.control(DS3231_INT_ENABLE,    DS3231_ON);
+  // Сбрасываем флаг будильника
+  RTC.control(DS3231_A1_FLAG, DS3231_OFF);
+ 
 }
 
 void loop() {
@@ -749,7 +773,33 @@ void loop() {
   // часы/минуты по старому 7‑seg‑шрифту в D2..D32
   Clock_Display(h, m, colonState);
 
-   lcd.printText(9, "BD");
+  //  lcd.printText(9, "BD");
 
+  // если будильник уже сработал, мигаем ICON_SIGNAL
+    if (alarmTriggeredToday) {
+      setIcon(ICON_SIGNAL, blinkState);
+      lcd.display();
+    }
+
+  }
+
+  // === ПРОВЕРКА БУДИЛЬНИКА ===
+ // Проверка срабатывания аппаратного будильника
+  if (!alarmTriggeredToday && RTC.checkAlarm1()) {
+    alarmTriggeredToday = true;
+    // флаг A1F библиотека сбросит внутри checkAlarm1()
+    // сразу один раз "подмигнём" иконкой
+    setIcon(ICON_SIGNAL, false);
+    lcd.display();
+  }
+
+  // Сброс будильника на новый день (в 00:00:00, например)
+  static uint8_t lastDay = 0;
+  if (RTC.dd != lastDay) {
+    lastDay = RTC.dd;
+    alarmTriggeredToday = false;
+    // будильник по‑прежнему включён -> ICON_SIGNAL снова постоянно горит
+    setIcon(ICON_SIGNAL, true);
+    lcd.display();
   }
 }
