@@ -1,8 +1,6 @@
 // Платформа Arduino Nano или Pro Mini, или ATmega 328Р
 // Подключение: Nano SPI пины D13 и D11 и управления D10 (CE_PIN)
 // LCD Подключение: фишка CN1 
-// Питание Driver LC75847 - 5V
-// Питание подсветки LCD 6.5 - 8.0V
 
 
 #include <SPI.h>
@@ -224,7 +222,7 @@ public:
       putChar(logical++, *s++);
     }
     if (clearTail && logical < NUM_CELLS)
-      clearCells(logical, NUM_CELLS - logical);
+      // clearCells(logical, NUM_CELLS - logical);
     display();
   }
 
@@ -412,12 +410,13 @@ private:
 
       case 'B': // как 8 без верхней палки
         return SEG_BIT(SA) |
-               SEG_BIT(SH2) |
-               SEG_BIT(SI2) |
+               SEG_BIT(SB1) |
+               SEG_BIT(SB2) |
+               SEG_BIT(SC1) | SEG_BIT(SC2) |
                SEG_BIT(SD)  |
-               SEG_BIT(SE1) | SEG_BIT(SE2) |
-               SEG_BIT(SF1) | SEG_BIT(SF2) |
-               SEG_BIT(SG1) | SEG_BIT(SG2);
+               SEG_BIT(SH1) | SEG_BIT(SI1) |
+               SEG_BIT(SG2) | SEG_BIT(SG3);
+               
 
       case 'C':
         return SEG_BIT(SA) |
@@ -430,8 +429,8 @@ private:
                SEG_BIT(SB1) | SEG_BIT(SB2) |
                SEG_BIT(SC1) | SEG_BIT(SC2) |
                SEG_BIT(SD)  |
-               SEG_BIT(SE1) | SEG_BIT(SE2) |
-               SEG_BIT(SF1) | SEG_BIT(SF2);
+               SEG_BIT(SH1) | SEG_BIT(SI1) |
+               SEG_BIT(SG2);
 
       case 'E':
         return SEG_BIT(SA) |
@@ -729,6 +728,8 @@ void loop() {
 
   // часы/минуты по старому 7‑seg‑шрифту в D2..D32
   Clock_Display(h, m, colonState);
+
+   lcd.printText(9, "BD");
 
   }
 }
