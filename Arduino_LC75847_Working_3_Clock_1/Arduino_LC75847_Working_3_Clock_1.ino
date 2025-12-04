@@ -1,6 +1,8 @@
 // Платформа Arduino Nano или Pro Mini, или ATmega 328Р
 // Подключение: Nano SPI пины D13 и D11 и управления D10 (CE_PIN)
 // LCD Подключение: фишка CN1 
+// Питание Driver LC75847 - 5V
+// Питание подсветки LCD 6.5 - 8.0V
 
 
 #include <SPI.h>
