@@ -95,7 +95,7 @@ const int16_t TIME_SEG_DN[4][7] = {
 };
 
 // D‑номер двоеточия
-const uint16_t TIME_COLON_DN = 19;
+const uint16_t TIME_COLON_DN = 19; //D19
 
 // ===== ИКОНКИ / МАРКЕРЫ =====
 enum IconId : uint8_t {
