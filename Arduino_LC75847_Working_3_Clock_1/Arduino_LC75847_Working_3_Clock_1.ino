@@ -602,7 +602,7 @@ const uint16_t SCROLL_INTERVAL = 500;       // скорость прокрутк
 unsigned long lastScrollTime = 0;
 
 const char scrollText[] =
-  "HELLO WORLD 0123456789";            // строка для прокрутки
+  "Topo & Roby -Under The Ice (Mufti Edit)";            // строка для прокрутки
 
 int16_t scrollOffset = 0;                  // смещение в строке
 int16_t scrollLen = sizeof(scrollText) - 1; // без '\0'
@@ -816,7 +816,7 @@ void loop() {
    uint8_t m = RTC.m;
    uint8_t s = RTC.s;
 
-  printTimeHHMMSS(h, m, s, colonState, 0);
+  // printTimeHHMMSS(h, m, s, colonState, 0);
 
   // uint8_t h = RTC.h;
   // uint8_t m = RTC.m;
@@ -863,9 +863,9 @@ void loop() {
     if (scrollOffset > scrollLen + NUM_CELLS) {
       scrollOffset = 0;   // начать прокрутку заново
     }
-
-    updateScrollText(9);
   }
+
+      updateScrollText(0);
 
     // === СЛУЧАЙНАЯ ИКОНКА ===
   if (millis() - lastIconRandomTime >= ICON_RANDOM_INTERVAL) {
