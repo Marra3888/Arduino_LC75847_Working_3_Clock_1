@@ -597,8 +597,22 @@ bool blinkState = false;           // состояние мигания ICON_SIG
 unsigned long lastBlink = 0;
 bool colonState = false;
 
+// ===== БЕГУЩИЙ ТЕКСТ ПО ЯЧЕЙКАМ 0..15 (справа налево) =====
+const uint16_t SCROLL_INTERVAL = 500;       // скорость прокрутки, мс
+unsigned long lastScrollTime = 0;
+
+const char scrollText[] =
+  "HELLO WORLD 0123456789";            // строка для прокрутки
+
+int16_t scrollOffset = 0;                  // смещение в строке
+int16_t scrollLen = sizeof(scrollText) - 1; // без '\0'
+
+// ===== СЛУЧАЙНОЕ ВКЛЮЧЕНИЕ ИКОНКИ =====
+const uint16_t ICON_RANDOM_INTERVAL = 1000;  // мс между сменами иконки
+unsigned long lastIconRandomTime = 0;
+
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void printTimeHHMMSS(uint8_t hours, uint8_t minutes, uint8_t seconds, bool colonOn) {
+void printTimeHHMMSS(uint8_t hours, uint8_t minutes, uint8_t seconds, bool colonOn, uint8_t position = 0) {
   char buf[9];  // "HH:MM:SS\0"
 
   buf[0] = '0' + (hours / 10);
@@ -614,7 +628,7 @@ void printTimeHHMMSS(uint8_t hours, uint8_t minutes, uint8_t seconds, bool colon
   buf[8] = '\0';
 
   // выводим слева, в логических ячейках 0..7
-  lcd.printText(0, buf);
+  lcd.printText(position, buf);
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -713,6 +727,39 @@ void turnOnAllIcons() {
   lcd.display();
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void updateScrollText(uint8_t position = 0) {
+  // логическая ячейка 0 — слева, 15 — справа
+  for (int cell = position; cell < NUM_CELLS; ++cell) {
+    // для движения СПРАВА НАЛЕВО: правый символ = scrollOffset,
+    // слева — всё "раньше"
+    int16_t idx = scrollOffset - (NUM_CELLS - 1 - cell);
+
+    char ch = ' ';
+    if (idx >= 0 && idx < scrollLen) {
+      ch = scrollText[idx];
+    }
+
+    lcd.putChar(cell, ch);
+  }
+
+  lcd.display();
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void showRandomIcon() {
+  // Погасить все иконки (если хочешь видеть только одну)
+  for (uint8_t i = 0; i < ICON_COUNT; i++) {
+    setIcon((IconId)i, false);
+  }
+
+  // Выбрать случайную иконку из диапазона 0..ICON_COUNT-1
+  uint8_t idx = random(0, ICON_COUNT);
+  setIcon((IconId)idx, true);
+
+  lcd.display();
+}
+
 // ######################################################################################################################################################################
 void setup() {
   Wire.begin();
@@ -727,6 +774,9 @@ void setup() {
   lcd.begin(CE_PIN, LC_ADDRESS);
 
   lcd.clear();
+
+  // Инициализация генератора случайных чисел
+  randomSeed(analogRead(0));  // или любой "шумный" пин
 
   // включить все варианты F/D/TIRE вокруг времени
   // turnOnAllIcons();  // включить все: RDM, _F, TIRE, _D, F_, TIRE_, D_, SIGNAL, SCAN, RPT, COMA_UP, ...
@@ -758,6 +808,7 @@ void loop() {
   if (millis() - lastBlink >= 500) {   // мигаем раз в 0.5 секунды
     lastBlink = millis();
     colonState = !colonState;
+    blinkState = !blinkState;
 
     RTC.readTime();        // обновляем RTC
 
@@ -765,7 +816,7 @@ void loop() {
    uint8_t m = RTC.m;
    uint8_t s = RTC.s;
 
-  printTimeHHMMSS(h, m, s, colonState);
+  printTimeHHMMSS(h, m, s, colonState, 0);
 
   // uint8_t h = RTC.h;
   // uint8_t m = RTC.m;
@@ -801,5 +852,24 @@ void loop() {
     // будильник по‑прежнему включён -> ICON_SIGNAL снова постоянно горит
     setIcon(ICON_SIGNAL, true);
     lcd.display();
+  }
+
+  // === БЕГУЩИЙ ТЕКСТ СПРАВА НАЛЕВО В ЯЧЕЙКАХ 0..15 ===
+  if (millis() - lastScrollTime >= SCROLL_INTERVAL) {
+    lastScrollTime = millis();
+
+    // сдвигаем "окно" вправо
+    scrollOffset++;
+    if (scrollOffset > scrollLen + NUM_CELLS) {
+      scrollOffset = 0;   // начать прокрутку заново
+    }
+
+    updateScrollText(9);
+  }
+
+    // === СЛУЧАЙНАЯ ИКОНКА ===
+  if (millis() - lastIconRandomTime >= ICON_RANDOM_INTERVAL) {
+    lastIconRandomTime = millis();
+    showRandomIcon();
   }
 }
